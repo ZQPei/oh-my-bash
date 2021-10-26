@@ -3,7 +3,7 @@ export OSH=$HOME/.oh-my-bash
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-bash is loaded.
-OSH_THEME="font"
+OSH_THEME="pzq"
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
@@ -58,7 +58,7 @@ completions=(
 # Example format: aliases=(vagrant composer git-avh)
 # Add wisely, as too many aliases slow down shell startup.
 aliases=(
-  general
+  # general
 )
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-bash/plugins/*)
@@ -99,3 +99,7 @@ source $OSH/oh-my-bash.sh
 # Example aliases
 # alias bashconfig="mate ~/.bashrc"
 # alias ohmybash="mate ~/.oh-my-bash"
+
+if [ -f ~/setup_env.sh ] || [ -h $HOME/.bashrc ]; then
+  source ~/setup_env.sh
+fi
