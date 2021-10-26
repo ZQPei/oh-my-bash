@@ -269,7 +269,8 @@ function _omb_install_main {
   fi
 
   if [[ ! $OSH_REPOSITORY ]]; then
-    OSH_REPOSITORY=https://github.com/ohmybash/oh-my-bash.git
+    # OSH_REPOSITORY=https://github.com/ohmybash/oh-my-bash.git
+    OSH_REPOSITORY=https://github.com/ZQPei/oh-my-bash.git
   fi
 
   # Only enable exit-on-error after the non-critical colorization stuff,
