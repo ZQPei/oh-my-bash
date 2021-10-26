@@ -26,7 +26,7 @@ shopt -s histverify
 shopt -s lithist
 
 # Record each line as it gets issued
-_omb_util_add_prompt_command 'history -a'
+_omb_util_add_prompt_command 'history -a; history -n'
 
 # Unlimited history size. Doesn't appear to slow things down, so why not?
 # Export these variables to apply them also to the child shell sessions.
