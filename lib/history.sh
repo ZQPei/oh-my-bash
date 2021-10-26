@@ -26,7 +26,7 @@ shopt -s histverify
 shopt -s lithist
 
 # Record each line as it gets issued
-PROMPT_COMMAND='history -a'
+PROMPT_COMMAND='history -a; history -n'
 
 # Huge history. Doesn't appear to slow things down, so why not?
 HISTSIZE=500000
