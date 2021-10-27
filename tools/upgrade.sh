@@ -23,7 +23,7 @@ fi
 
 printf "${BLUE}%s${NORMAL}\n" "Updating Oh My Bash"
 cd "$OSH"
-if git pull --rebase --stat origin personal
+if git pull --rebase --stat origin main
 then
   printf '%s' "$GREEN"
   printf '%s\n' '         __                          __               __  '
