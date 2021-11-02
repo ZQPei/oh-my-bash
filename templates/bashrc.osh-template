@@ -100,6 +100,6 @@ source $OSH/oh-my-bash.sh
 # alias bashconfig="mate ~/.bashrc"
 # alias ohmybash="mate ~/.oh-my-bash"
 
-if [ -f ~/setup_env.sh ] || [ -h $HOME/.bashrc ]; then
+if [ -f ~/setup_env.sh ] || [ -h $HOME/setup_env.sh ]; then
   source ~/setup_env.sh
 fi
