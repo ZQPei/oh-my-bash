@@ -80,6 +80,9 @@ main() {
 
   printf "${BLUE}Using the Oh My Bash template file and adding it to ~/.bashrc${NORMAL}\n"
   cp $OSH/templates/bashrc.osh-template $HOME/.bashrc
+  if [ -f $HOME/setup_env.sh ]; then
+    cp $OSH/templates/setup_env.sh.osh-template $HOME/setup_env.sh
+  fi
   sed "/^export OSH=/ c\\
 export OSH=$OSH
   " $HOME/.bashrc > $HOME/.bashrc-ombtemp
