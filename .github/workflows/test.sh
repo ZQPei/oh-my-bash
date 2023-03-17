@@ -14,7 +14,7 @@ source "$HOME/.bashrc"
 
 set | grep -aE "^OSH"
 
-if [[ "$OSH_THEME" == "font" ]]; then
+if [[ "$OSH_THEME" == "pzq" ]]; then
   echo "Installation succeeded"
 else
   echo "Installation failed, \$OSH_THEME is not set to 'font'"
