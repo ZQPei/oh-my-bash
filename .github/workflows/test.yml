@@ -26,3 +26,6 @@ jobs:
       - name: Install oh-my-bash
         shell: bash
         run: bash --noprofile --norc -i "$PWD/.github/workflows/test.sh"
+      - name: Install oh-my-bash from local
+        shell: bash
+        run: bash --noprofile --norc -i "$PWD/.github/workflows/test_local.sh"

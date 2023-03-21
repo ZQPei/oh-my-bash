@@ -8,7 +8,7 @@ export OSH="$tmpdir/path with space"
 export HOME="$tmpdir/home with space"
 mkdir -p "$HOME"
 
-OSH_REPOSITORY_LOCAL="$PWD" ./tools/install_local.sh
+TMPOSH=/tmp/oh-my-bash && rm -rf ${TMPOSH} && git clone -b main --depth=1 https://github.com/ZQPei/oh-my-bash.git ${TMPOSH} && bash ${TMPOSH}/tools/install_local.sh && rm -rf ${TMPOSH}
 
 source "$HOME/.bashrc"
 
