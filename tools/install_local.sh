@@ -172,7 +172,7 @@ export OSH='${OSH//\'/\'\\\'\'}'
       if [[ -h ~/.bash_profile ]]; then
         _omb_install_run rm -f ~/.bash_profile
       fi
-      _omb_install_run cp -f "$OSH"/templates/bash_profile.osh-template ~/.bash_profile
+      _omb_install_run cp -af "$OSH"/templates/bash_profile.osh-template ~/.bash_profile
     else
       printf '%s\n' "${GREEN}Please make sure that ~/.bash_profile contains \"source ~/.bashrc\"${NORMAL}"
     fi
@@ -270,9 +270,13 @@ function _omb_install_main {
     OSH=~/.oh-my-bash
   fi
 
-  if [[ ! $OSH_REPOSITORY ]]; then
-    # OSH_REPOSITORY=https://github.com/ohmybash/oh-my-bash.git
-    OSH_REPOSITORY=https://github.com/ZQPei/oh-my-bash.git
+  # if [[ ! $OSH_REPOSITORY ]]; then
+  #   # OSH_REPOSITORY=https://github.com/ohmybash/oh-my-bash.git
+  #   OSH_REPOSITORY=https://github.com/ZQPei/oh-my-bash.git
+  # fi
+
+  if [[ ! $OSH_REPOSITORY_LOCAL ]]; then
+    OSH_REPOSITORY_LOCAL=/tmp/.oh-my-bash
   fi
 
   # Only enable exit-on-error after the non-critical colorization stuff,
@@ -306,8 +310,12 @@ function _omb_install_main {
       return 1
     fi
   fi
-  _omb_install_run git clone --depth=1 "$OSH_REPOSITORY" "$OSH" || {
-    printf "Error: git clone of oh-my-bash repo failed\n"
+  # _omb_install_run git clone --depth=1 "$OSH_REPOSITORY" "$OSH" || {
+  #   printf "Error: git clone of oh-my-bash repo failed\n"
+  #   return 1
+  # }
+  _omb_install_run rsync -au "$OSH_REPOSITORY_LOCAL" "$OSH" || {
+    printf "Error: rsync of oh-my-bash from %s to %s failed\n" $OSH_REPOSITORY_LOCAL $OSH
     return 1
   }
 
