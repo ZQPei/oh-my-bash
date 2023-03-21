@@ -276,7 +276,7 @@ function _omb_install_main {
   # fi
 
   if [[ ! $OSH_REPOSITORY_LOCAL ]]; then
-    OSH_REPOSITORY_LOCAL=/tmp/.oh-my-bash
+    OSH_REPOSITORY_LOCAL=/tmp/oh-my-bash
   fi
 
   # Only enable exit-on-error after the non-critical colorization stuff,
