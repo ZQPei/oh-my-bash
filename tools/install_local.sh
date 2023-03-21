@@ -314,7 +314,7 @@ function _omb_install_main {
   #   printf "Error: git clone of oh-my-bash repo failed\n"
   #   return 1
   # }
-  _omb_install_run rsync -au "$OSH_REPOSITORY_LOCAL" "$OSH" || {
+  _omb_install_run rsync -au "$OSH_REPOSITORY_LOCAL"/ "$OSH"/ || {
     printf "Error: rsync of oh-my-bash from %s to %s failed\n" $OSH_REPOSITORY_LOCAL $OSH
     return 1
   }
