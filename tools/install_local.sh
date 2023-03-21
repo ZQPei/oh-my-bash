@@ -161,7 +161,7 @@ function _omb_install_user_bashrc {
 export OSH='${OSH//\'/\'\\\'\'}'
   " "$OSH"/templates/bashrc.osh-template >| ~/.bashrc.omb-temp &&
     _omb_install_run mv -f ~/.bashrc.omb-temp ~/.bashrc &&
-    "$OSH"/templates/setup_env.sh.osh-template >| ~/setup_env.sh.omb-temp &&
+    _omb_install_run cp -af "$OSH"/templates/setup_env.sh.osh-template ~/setup_env.sh.omb-temp &&
     _omb_install_run mv -f ~/setup_env.sh.omb-temp ~/setup_env.sh
 
   # If "source ~/.bashrc" is not found in ~/.bash_profile or ~/.profile, we try
