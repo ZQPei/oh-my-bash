@@ -1,5 +1,6 @@
 #! bash oh-my-bash.module
 
+_omb_module_require lib:omb-util
 _omb_module_require lib:omb-deprecate
 _omb_module_require lib:omb-prompt-colors
 
@@ -79,6 +80,7 @@ CHRUBY_THEME_PROMPT_SUFFIX='|'
 # OMB_PROMPT_CONDAENV_USE_BASENAME=true
 # OMB_PROMPT_PYTHON_VERSION_FORMAT=' |%s|'
 # OMB_PROMPT_SHOW_PYTHON_VENV=true
+OMB_PROMPT_SPACK_ENV_FORMAT='[%s] '
 
 # deprecate
 VIRTUALENV_THEME_PROMPT_PREFIX=' |'
@@ -101,13 +103,24 @@ function _omb_prompt_format {
     local __suffix=${3#*:}_SUFFIX; __suffix=${!__suffix-} # deprecate name
     __format=${__prefix//'%'/'%%'}%s${__suffix//'%'/'%%'}
   fi
-  printf -v "$1" "$__format" "$2"
+  local REPLY
+  _omb_string_escape_prompt "$2"
+  printf -v "$1" "$__format" "$REPLY"
+}
+
+function _omb_prompt_git {
+  command git "$@"
+}
+
+function _omb_prompt_git_status_enabled {
+  [[ $(_omb_prompt_git config --get-regexp '^(oh-my-zsh|bash-it|oh-my-bash)\.hide-status$' |
+    awk '$2== "1" {hide_status = 1;} END { print hide_status; }') != "1" ]]
 }
 
 function scm {
   if [[ "$SCM_CHECK" = false ]]; then SCM=$SCM_NONE
   elif [[ -f .git/HEAD ]]; then SCM=$SCM_GIT
-  elif _omb_util_binary_exists git && [[ -n "$(command git rev-parse --is-inside-work-tree 2> /dev/null)" ]]; then SCM=$SCM_GIT
+  elif _omb_util_binary_exists git && [[ -n "$(_omb_prompt_git rev-parse --is-inside-work-tree 2> /dev/null)" ]]; then SCM=$SCM_GIT
   elif [[ -d .hg ]]; then SCM=$SCM_HG
   elif _omb_util_binary_exists hg && [[ -n "$(command hg root 2> /dev/null)" ]]; then SCM=$SCM_HG
   elif [[ -d .svn ]]; then SCM=$SCM_SVN
@@ -169,32 +182,33 @@ function scm_prompt_info_common {
 # This is added to address bash shell interpolation vulnerability described
 # here: https://github.com/njhartwell/pw3nage
 function git_clean_branch {
-  local unsafe_ref=$(command git symbolic-ref -q HEAD 2> /dev/null)
+  local unsafe_ref=$(_omb_prompt_git symbolic-ref -q HEAD 2> /dev/null)
   local stripped_ref=${unsafe_ref##refs/heads/}
   local clean_ref=${stripped_ref//[\$\`\\]/-}
   clean_ref=${clean_ref//[^[:print:]]/-} # strip escape sequences, etc.
-  echo $clean_ref
+  _omb_util_print $clean_ref
 }
 
 function git_prompt_minimal_info {
-  local ref
-  local status
+  local ref status
   local git_status_flags=('--porcelain')
-  SCM_STATE=${SCM_THEME_PROMPT_CLEAN}
+  local clean_symbol="${SCM_THEME_PROMPT_CLEAN:-✔}"
+  local dirty_symbol="${SCM_THEME_PROMPT_DIRTY:-✘}"
+  SCM_STATE=${clean_symbol}
 
-  if [[ "$(command git config --get bash-it.hide-status)" != "1" ]]; then
+  if _omb_prompt_git_status_enabled; then
     # Get the branch reference
-    ref=$(git_clean_branch) || \
-    ref=$(command git rev-parse --short HEAD 2> /dev/null) || return 0
+    ref=$(git_clean_branch) ||
+      ref=$(_omb_prompt_git rev-parse --short HEAD 2> /dev/null) || return 0
     SCM_BRANCH=${SCM_THEME_BRANCH_PREFIX}${ref}
 
     # Get the status
-    [[ "${SCM_GIT_IGNORE_UNTRACKED}" = "true" ]] && git_status_flags+='-untracked-files=no'
-    status=$(command git status ${git_status_flags} 2> /dev/null | tail -n1)
+    [[ "${SCM_GIT_IGNORE_UNTRACKED}" = "true" ]] && git_status_flags+=('--untracked-files=no')
+    status=$(_omb_prompt_git status "${git_status_flags[@]}" 2> /dev/null | tail -n1)
 
     if [[ -n ${status} ]]; then
       SCM_DIRTY=1
-      SCM_STATE=${SCM_THEME_PROMPT_DIRTY}
+      SCM_STATE=${dirty_symbol}
     fi
 
     # Output the git prompt
@@ -238,12 +252,12 @@ function git_status_summary {
 function git_prompt_vars {
   local details=''
   local git_status_flags=''
-  [[ "$(command git rev-parse --is-inside-work-tree 2> /dev/null)" == "true" ]] || return 1
+  [[ "$(_omb_prompt_git rev-parse --is-inside-work-tree 2> /dev/null)" == "true" ]] || return 1
   SCM_STATE=${GIT_THEME_PROMPT_CLEAN:-$SCM_THEME_PROMPT_CLEAN}
-  if [[ "$(command git config --get bash-it.hide-status)" != "1" ]]; then
+  if _omb_prompt_git_status_enabled; then
     [[ "${SCM_GIT_IGNORE_UNTRACKED}" = "true" ]] && git_status_flags='-uno'
-    local status_lines=$((command git status --porcelain ${git_status_flags} -b 2> /dev/null ||
-                          command git status --porcelain ${git_status_flags}    2> /dev/null) | git_status_summary)
+    local status_lines=$((_omb_prompt_git status --porcelain ${git_status_flags} -b 2> /dev/null ||
+                          _omb_prompt_git status --porcelain ${git_status_flags}    2> /dev/null) | git_status_summary)
     local status=$(awk 'NR==1' <<< "$status_lines")
     local counts=$(awk 'NR==2' <<< "$status_lines")
     IFS=$'\t' read -r untracked_count unstaged_count staged_count <<< "$counts"
@@ -261,7 +275,7 @@ function git_prompt_vars {
 
   [[ "${SCM_GIT_SHOW_CURRENT_USER}" == "true" ]] && details+="$(git_user_info)"
 
-  SCM_CHANGE=$(command git rev-parse --short HEAD 2>/dev/null)
+  SCM_CHANGE=$(_omb_prompt_git rev-parse --short HEAD 2>/dev/null)
 
   local ref=$(git_clean_branch)
 
@@ -275,7 +289,7 @@ function git_prompt_vars {
       local remote_name=${tracking_info%%/*}
       local remote_branch=${tracking_info#${remote_name}/}
       local remote_info=""
-      local num_remotes=$(command git remote | wc -l 2> /dev/null)
+      local num_remotes=$(_omb_prompt_git remote | wc -l 2> /dev/null)
       [[ "${SCM_BRANCH}" = "${remote_branch}" ]] && local same_branch_name=true
       if ([[ "${SCM_GIT_SHOW_REMOTE_INFO}" = "auto" ]] && [[ "${num_remotes}" -ge 2 ]]) ||
           [[ "${SCM_GIT_SHOW_REMOTE_INFO}" = "true" ]]; then
@@ -295,11 +309,11 @@ function git_prompt_vars {
     SCM_GIT_DETACHED="false"
   else
     local detached_prefix=""
-    ref=$(command git describe --tags --exact-match 2> /dev/null)
+    ref=$(_omb_prompt_git describe --tags --exact-match 2> /dev/null)
     if [[ -n "$ref" ]]; then
       detached_prefix=${SCM_THEME_TAG_PREFIX}
     else
-      ref=$(command git describe --contains --all HEAD 2> /dev/null)
+      ref=$(_omb_prompt_git describe --contains --all HEAD 2> /dev/null)
       ref=${ref#remotes/}
       [[ -z "$ref" ]] && ref=${SCM_CHANGE}
       detached_prefix=${SCM_THEME_DETACHED_PREFIX}
@@ -313,7 +327,7 @@ function git_prompt_vars {
   [[ "${status}" =~ ${ahead_re} ]] && SCM_BRANCH+=" ${SCM_GIT_AHEAD_CHAR}${BASH_REMATCH[1]}"
   [[ "${status}" =~ ${behind_re} ]] && SCM_BRANCH+=" ${SCM_GIT_BEHIND_CHAR}${BASH_REMATCH[1]}"
 
-  local stash_count="$(command git stash list 2> /dev/null | wc -l | tr -d ' ')"
+  local stash_count="$(_omb_prompt_git stash list 2> /dev/null | wc -l | tr -d ' ')"
   [[ "${stash_count}" -gt 0 ]] && SCM_BRANCH+=" {${stash_count}}"
 
   SCM_BRANCH+=${details}
@@ -344,52 +358,58 @@ function svn_prompt_vars {
 # - .hg is located in ~/Projects/Foo/.hg
 # - get_hg_root starts at ~/Projects/Foo/Bar and sees that there is no .hg directory, so then it goes into ~/Projects/Foo
 function get_hg_root {
-    local CURRENT_DIR=$PWD
+  local CURRENT_DIR=$PWD
 
-    while [ "$CURRENT_DIR" != "/" ]; do
-        if [ -d "$CURRENT_DIR/.hg" ]; then
-            echo "$CURRENT_DIR/.hg"
-            return
-        fi
+  while [ "$CURRENT_DIR" != "/" ]; do
+    if [ -d "$CURRENT_DIR/.hg" ]; then
+      _omb_util_print "$CURRENT_DIR/.hg"
+      return
+    fi
 
-        CURRENT_DIR=$(dirname "$CURRENT_DIR")
-    done
+    CURRENT_DIR=$(dirname "$CURRENT_DIR")
+  done
 }
 
 function hg_prompt_vars {
-    if [[ -n $(command hg status 2> /dev/null) ]]; then
-      SCM_DIRTY=1
-        SCM_STATE=${HG_THEME_PROMPT_DIRTY:-$SCM_THEME_PROMPT_DIRTY}
-    else
-      SCM_DIRTY=0
-        SCM_STATE=${HG_THEME_PROMPT_CLEAN:-$SCM_THEME_PROMPT_CLEAN}
-    fi
-    SCM_PREFIX=${HG_THEME_PROMPT_PREFIX:-$SCM_THEME_PROMPT_PREFIX}
-    SCM_SUFFIX=${HG_THEME_PROMPT_SUFFIX:-$SCM_THEME_PROMPT_SUFFIX}
+  if [[ -n $(command hg status 2> /dev/null) ]]; then
+    SCM_DIRTY=1
+    SCM_STATE=${HG_THEME_PROMPT_DIRTY:-$SCM_THEME_PROMPT_DIRTY}
+  else
+    SCM_DIRTY=0
+    SCM_STATE=${HG_THEME_PROMPT_CLEAN:-$SCM_THEME_PROMPT_CLEAN}
+  fi
+  SCM_PREFIX=${HG_THEME_PROMPT_PREFIX:-$SCM_THEME_PROMPT_PREFIX}
+  SCM_SUFFIX=${HG_THEME_PROMPT_SUFFIX:-$SCM_THEME_PROMPT_SUFFIX}
 
-    HG_ROOT=$(get_hg_root)
+  HG_ROOT=$(get_hg_root)
 
-    if [ -f "$HG_ROOT/branch" ]; then
-        # Mercurial holds it's current branch in .hg/branch file
-        SCM_BRANCH=$(cat "$HG_ROOT/branch")
-    else
-        SCM_BRANCH=$(command hg summary 2> /dev/null | grep branch: | awk '{print $2}')
-    fi
+  if [ -f "$HG_ROOT/branch" ]; then
+    # Mercurial holds it's current branch in .hg/branch file
+    SCM_BRANCH=$(cat "$HG_ROOT/branch")
+  else
+    SCM_BRANCH=$(command hg summary 2> /dev/null | grep branch: | awk '{print $2}')
+  fi
 
-    if [ -f "$HG_ROOT/dirstate" ]; then
-        # Mercurial holds various information about the working directory in .hg/dirstate file. More on http://mercurial.selenic.com/wiki/DirState
-        SCM_CHANGE=$(hexdump -n 10 -e '1/1 "%02x"' "$HG_ROOT/dirstate" | cut -c-12)
-    else
-        SCM_CHANGE=$(command hg summary 2> /dev/null | grep parent: | awk '{print $2}')
-    fi
+  if [ -f "$HG_ROOT/dirstate" ]; then
+    # Mercurial holds various information about the working directory in .hg/dirstate file. More on http://mercurial.selenic.com/wiki/DirState
+    SCM_CHANGE=$(hexdump -n 10 -e '1/1 "%02x"' "$HG_ROOT/dirstate" | cut -c-12)
+  else
+    SCM_CHANGE=$(command hg summary 2> /dev/null | grep parent: | awk '{print $2}')
+  fi
 }
 
+## @fn _omb_prompt_get_rbfu
+##   @var[out] rbfu
+##   @exit
 function _omb_prompt_get_rbfu {
   rbfu=$RBFU_RUBY_VERSION
   [[ $rbfu ]] || return 1
   _omb_prompt_format rbfu "$rbfu" OMB_PROMPT_RBFU:RBFU_THEME_PROMPT
 }
 
+## @fn _omb_prompt_get_rbenv
+##   @var[out] rbenv
+##   @exit
 function _omb_prompt_get_rbenv {
   rbenv=
   _omb_util_command_exists rbenv || return 1
@@ -403,6 +423,9 @@ function _omb_prompt_get_rbenv {
   _omb_prompt_format rbenv "$rbenv" OMB_PROMPT_RBENV:RBENV_THEME_PROMPT
 }
 
+## @fn _omb_prompt_get_rvm
+##   @var[out] rvm
+##   @exit
 function _omb_prompt_get_rvm {
   rvm=
   if _omb_util_command_exists rvm-prompt; then
@@ -418,6 +441,9 @@ function _omb_prompt_get_rvm {
   _omb_prompt_format rvm "$rvm" OMB_PROMPT_RVM:RVM_THEME_PROMPT
 }
 
+## @fn _omb_prompt_get_chruby
+##   @var[out] chruby
+##   @exit
 function _omb_prompt_get_chruby {
   chruby=
   _omb_util_function_exists chruby || return 1
@@ -432,6 +458,9 @@ function _omb_prompt_get_chruby {
   chruby+=$ruby_version
 }
 
+## @fn _omb_prompt_get_ruby_env
+##   @var[out] ruby_env
+##   @exit
 function _omb_prompt_get_ruby_env {
   local rbfu rbenv rvm chruby
   _omb_prompt_get_rbfu
@@ -454,12 +483,19 @@ _omb_deprecate_function 20000 rvm_version_prompt    _omb_prompt_print_rvm
 _omb_deprecate_function 20000 chruby_version_prompt _omb_prompt_print_chruby
 _omb_deprecate_function 20000 ruby_version_prompt   _omb_prompt_print_ruby_env
 
+## @fn _omb_prompt_get_virtualenv
+##   @var[out] virtualenv
+##   @exit
 function _omb_prompt_get_virtualenv {
   virtualenv=
   [[ ${VIRTUAL_ENV-} ]] || return 1
-  _omb_prompt_format virtualenv "$(basename "$VIRTUAL_ENV")" OMB_PROMPT_VIRTUALENV:VIRTUALENV_THEME_PROMPT
+  virtualenv=${VIRTUAL_ENV_PROMPT:-$(basename "$VIRTUAL_ENV")}
+  _omb_prompt_format virtualenv "$virtualenv" OMB_PROMPT_VIRTUALENV:VIRTUALENV_THEME_PROMPT
 }
 
+## @fn _omb_prompt_get_condaenv
+##   @var[out] condaenv
+##   @exit
 function _omb_prompt_get_condaenv {
   condaenv=
   [[ ${CONDA_DEFAULT_ENV-} && ${CONDA_SHLVL-} != 0 ]] || return 1
@@ -471,12 +507,18 @@ function _omb_prompt_get_condaenv {
   _omb_prompt_format condaenv "$condaenv" OMB_PROMPT_CONDAENV:CONDAENV_THEME_PROMPT
 }
 
+## @fn _omb_prompt_get_python_version
+##   @var[out] python_version
+##   @exit
 function _omb_prompt_get_python_version {
   python_version=$(python --version 2>&1 | command awk '{print "py-"$2;}')
   [[ $python_version ]] || return 1
   _omb_prompt_format python_version "$python_version" OMB_PROMPT_PYTHON_VERSION:PYTHON_THEME_PROMPT
 }
 
+## @fn _omb_prompt_get_python_venv
+##   @var[out] python_venv
+##   @exit
 function _omb_prompt_get_python_venv {
   python_venv=
   [[ ${OMB_PROMPT_SHOW_PYTHON_VENV-} == true ]] || return 1
@@ -486,6 +528,10 @@ function _omb_prompt_get_python_venv {
   python_venv=$virtualenv$condaenv
   [[ $python_venv ]]
 }
+
+## @fn _omb_prompt_get_python_env
+##   @var[out] python_env
+##   @exit
 function _omb_prompt_get_python_env {
   local virtualenv condaenv python_version
   _omb_prompt_get_virtualenv
@@ -493,6 +539,16 @@ function _omb_prompt_get_python_env {
   _omb_prompt_get_python_version
   python_env=$virtualenv$condaenv$python_version
   [[ $python_env ]]
+}
+
+## @fn _omb_prompt_get_spack_env
+##   @var[out] spack_env
+##   @exit
+function _omb_prompt_get_spack_env {
+  spack_env=
+  [[ ${OMB_PROMPT_SHOW_SPACK_ENV-} == true ]] || return 1
+  [[ ${SPACK_ENV-} ]] || return 1
+  _omb_prompt_format spack_env "$(basename "$SPACK_ENV")" OMB_PROMPT_SPACK_ENV
 }
 
 _omb_util_defun_print _omb_prompt_{print,get}_virtualenv virtualenv
@@ -508,9 +564,9 @@ _omb_deprecate_function 20000 python_version_prompt _omb_prompt_print_python_env
 
 function git_user_info {
   # support two or more initials, set by 'git pair' plugin
-  SCM_CURRENT_USER=$(command git config user.initials | sed 's% %+%')
+  SCM_CURRENT_USER=$(_omb_prompt_git config user.initials | sed 's% %+%')
   # if `user.initials` weren't set, attempt to extract initials from `user.name`
-  [[ -z "${SCM_CURRENT_USER}" ]] && SCM_CURRENT_USER=$(printf "%s" $(for word in $(command git config user.name | tr 'A-Z' 'a-z'); do printf "%1.1s" $word; done))
+  [[ -z "${SCM_CURRENT_USER}" ]] && SCM_CURRENT_USER=$(printf "%s" $(for word in $(_omb_prompt_git config user.name | tr 'A-Z' 'a-z'); do printf "%1.1s" $word; done))
   [[ -n "${SCM_CURRENT_USER}" ]] && printf "%s" "$SCM_THEME_CURRENT_USER_PREFFIX$SCM_CURRENT_USER$SCM_THEME_CURRENT_USER_SUFFIX"
 }
 
@@ -564,37 +620,37 @@ function scm_char {
 }
 
 function prompt_char {
-    scm_char
+  scm_char
 }
 
 function battery_char {
-    if [[ "${THEME_BATTERY_PERCENTAGE_CHECK}" = true ]]; then
-        echo -e "${_omb_prompt_bold_brown}$(battery_percentage)%"
-    fi
+  if [[ "${THEME_BATTERY_PERCENTAGE_CHECK}" = true ]]; then
+    echo -e "${_omb_prompt_bold_brown}$(battery_percentage)%"
+  fi
 }
 
 if ! _omb_util_command_exists 'battery_charge' ; then
-    # if user has installed battery plugin, skip this...
-    function battery_charge (){
-        # no op
-        echo -n
-    }
+  # if user has installed battery plugin, skip this...
+  function battery_charge (){
+    # no op
+    _omb_util_put
+  }
 fi
 
 # The battery_char function depends on the presence of the battery_percentage function.
 # If battery_percentage is not defined, then define battery_char as a no-op.
 if ! _omb_util_command_exists 'battery_percentage' ; then
-    function battery_char (){
-      # no op
-      echo -n
-    }
+  function battery_char (){
+    # no op
+    _omb_util_put
+  }
 fi
 
 function aws_profile {
   if [[ $AWS_DEFAULT_PROFILE ]]; then
-    echo -e "${AWS_DEFAULT_PROFILE}"
+    _omb_util_print "$AWS_DEFAULT_PROFILE"
   else
-    echo -e "default"
+    _omb_util_print "default"
   fi
 }
 

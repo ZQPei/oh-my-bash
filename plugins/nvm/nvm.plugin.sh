@@ -16,32 +16,34 @@ fi
 #------------------------------------------------------------------------------
 # Optional .nvmrc autoload
 #
-# This part is originally from the official nvm documentation
-# (README.md).  Here is the license of the original project:
+# This part is originally from the official nvm documentation (README.md).  The
+# current version is based on the following lines:
+#
+#   https://github.com/nvm-sh/nvm/blob/99352a64d25ce27d49ff6a449663ce3d7c12e5b5/README.md?plain=1#L686-L726
+#
+# Here is the license of the original project:
 #
 # The MIT License (MIT)
 #
 # Copyright (c) 2010 Tim Caswell
 # Copyright (c) 2014 Jordan Harband
 #
-# Permission is hereby granted, free of charge, to any person
-# obtaining a copy of this software and associated documentation files
-# (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge,
-# publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
-# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
 if _omb_util_command_exists nvm && [[ ${OMB_PLUGIN_NVM_AUTO_USE-} == true ]]; then
@@ -50,11 +52,11 @@ if _omb_util_command_exists nvm && [[ ${OMB_PLUGIN_NVM_AUTO_USE-} == true ]]; th
     while [[ $path && ! -e $path/$1 ]]; do
       path=${path%/*}
     done
-    echo "$path"
+    _omb_util_print "$path"
   }
 
   function _omb_plugin_nvm_cd {
-    cd "$@" || return "$?"
+    command cd "$@" || return "$?"
     local nvm_path=$(_omb_plugin_nvm_find_up .nvmrc)
 
     # If there are no .nvmrc file, use the default nvm version
@@ -79,17 +81,17 @@ if _omb_util_command_exists nvm && [[ ${OMB_PLUGIN_NVM_AUTO_USE-} == true ]]; th
       local nvm_version
       nvm_version=$(< "$nvm_path"/.nvmrc)
 
-      # Add the `v` suffix if it does not exists in the .nvmrc file
-      if [[ $nvm_version != v* ]]; then
-        nvm_version=v$nvm_version
-      fi
+      local locally_resolved_nvm_version
+      # `nvm ls` will check all locally-available versions.  If there are
+      # multiple matching versions, take the latest one.  Remove the `->` and
+      # `*` characters and spaces.  `locally_resolved_nvm_version` will be
+      # `N/A` if no local versions are found.
+      locally_resolved_nvm_version=$(nvm ls --no-colors "$nvm_version" | command sed -n '${s/->//g;s/[*[:space:]]//g;p;}')
 
       # If it is not already installed, install it
-      if nvm ls "$nvm_version" | grep -qx '[[:space:]]*N/A[[:space:]]*'; then
+      if [[ $locally_resolved_nvm_version == N/A ]]; then
         nvm install "$nvm_version"
-      fi
-
-      if [[ $(nvm current) != "$nvm_version" ]]; then
+      elif [[ $(nvm current) != "$locally_resolved_nvm_version" ]]; then
         nvm use "$nvm_version"
       fi
     fi

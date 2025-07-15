@@ -87,12 +87,12 @@ We'll admit it. Early in the Oh My Bash world, we may have gotten a bit too them
 
 #### Selecting a Theme
 
-_Powerline's theme is the default one. It's not the fanciest one. It's not the simplest one. It's just the right one (for me)._
+_The font theme is the default one. It's not the fanciest one. It's not the simplest one. It's just the right one for the original maintainer of Oh My Bash._
 
 Once you find a theme that you want to use, you will need to edit the `~/.bashrc` file. You'll see an environment variable (all caps) in there that looks like:
 
 ```shell
-OSH_THEME="powerline"
+OSH_THEME="font"
 ```
 
 To use a different theme, simply change the value to match the name of your desired theme. For example:
@@ -105,14 +105,28 @@ OSH_THEME="agnoster" # (this is one of the fancy ones)
 
 Open up a new terminal window and your prompt should look something like this:
 
-![Agnoster theme](img/example_powerline.png)
+![Font theme](themes/font/font-dark.png)
 
-In case you did not find a suitable theme for your needs, please have a look at the wiki for [more of them](https://github.com/ohmybash/oh-my-bash/wiki/External-themes).
+In case you did not find a suitable theme for your needs, please have a look
+at the wiki for [more of them](https://github.com/ohmybash/oh-my-bash/wiki/Themes).
 
 If you're feeling feisty, you can let the computer select one randomly for you each time you open a new terminal window.
 
 ```shell
 OSH_THEME="random" # (...please let it be pie... please be some pie..)
+```
+
+If you want to randomly select a theme from a specified list, you can set the
+list in the following array:
+
+```shell
+OMB_THEME_RANDOM_CANDIDATES=("font" "powerline-light" "minimal")
+```
+
+If there are themes you don't like, you can add them to an ignored list:
+
+```shell
+OMB_THEME_RANDOM_IGNORED=("powerbash10k" "wanelo")
 ```
 
 The selected theme name can be checked by the following command:
@@ -208,9 +222,15 @@ If you have any hiccups installing, here are a few common fixes.
 
 If you want to override any of the default behaviors, just add a new file (ending in `.sh`) in the `custom/` directory.
 
-If you have many functions that go well together, you can put them as a `XYZ.plugin.sh` file in the `custom/plugins/` directory and then enable this plugin.
+If you have many functions that go well together, you can put them as a
+`XYZ.plugin.sh` file in the `custom/plugins/XYZ` directory and then enable this
+plugin by adding the name to the `plugins` array in `~/.bashrc`.
 
-If you would like to modify an existing module (theme/plugin/aliases/completion) bundled with Oh My Bash, first copy the original module to `custom/` directory and modify it.  It will be loaded instead of the original one.
+If you would like to modify an existing module
+(theme/plugin/aliases/completion) bundled with Oh My Bash, first copy the
+original module to `custom/` directory and modify it.  It will be loaded
+instead of the original one when it is enabled through
+`OSH_THEME`/`plugins`/`aliases`/`completions` in `~/.bashrc`.
 
 ```bash
 $ mkdir -p "$OSH_CUSTOM/themes"
@@ -218,9 +238,14 @@ $ cp -r {"$OSH","$OSH_CUSTOM"}/themes/agnoster
 $ EDIT "$OSH_CUSTOM/themes/agnoster/agnoster.theme.sh"
 ```
 
-If you would like to track the upstream changes for your customized version of modules, you can optionally directly edit the original files and commit them.  In this case, you need to handle possible conflicts with the upstream in upgrading.
+If you would like to track the upstream changes for your customized version of
+modules, you can optionally directly edit the original files and commit them.
+In this case, you need to handle possible conflicts with the upstream
+(`github.com/ohmybash/oh-my-bash`) in upgrading.
 
-If you would like to replace an existing module (theme/plugin/aliases/complet) bundled with Oh My Bash, create a module of the same name in the `custom/` directory so that it will be loaded instead of the original one.
+If you want to replace an existing module (theme/plugin/aliases/complet)
+bundled with Oh My Bash, create a module of the same name in the `custom/`
+directory so that it will be loaded instead of the original one.
 
 ### Configuration
 
@@ -237,6 +262,20 @@ Some themes turn on it by default.  If you would like to turn it off, you may di
 ```bash
 OMB_PROMPT_SHOW_PYTHON_VENV=false
 ```
+
+#### Enable/disable Spack environment information
+
+To enable the Spack environment information in the prompt, please set the
+following shell variable in `~/.bashrc`:
+
+```bash
+OMB_PROMPT_SHOW_SPACK_ENV=true
+```
+
+If the theme supports it, the information of the currently active Spack
+environment will be shown.  If the theme you use does not support the Spack
+environment information, a pull request to add it is welcome.  See the `font`
+theme as an example implementation of including the Spack environment.
 
 #### Disable internal uses of `sudo`
 
@@ -280,9 +319,19 @@ If you want to uninstall `oh-my-bash`, just run `uninstall_oh_my_bash` from the 
 
 ## Contributing
 
-I'm far from being a [Bash](https://www.gnu.org/software/bash/) expert and suspect there are many ways to improve – if you have ideas on how to make the configuration easier to maintain (and faster), don't hesitate to fork and send pull requests!
+Check out [`CONTRIBUTING.md`](CONTRIBUTING.md) and also [Code of
+Conduct](CODE_OF_CONDUCT.md).
 
-We also need people to test out pull-requests. So take a look through [the open issues](https://github.com/ohmybash/oh-my-bash/issues) and help where you can.
+This project is initially ported from Oh My Zsh and Bash-it by `@nntoan` and
+has been developed in a community-driven way.  Most of the contributors are far
+from being [Bash](https://www.gnu.org/software/bash/) experts, and there are
+many ways to improve the codebase.  We are looking for more people with
+expertise in Bash scripting.  If you have ideas on how to make the
+configuration easier to maintain (and faster), don't hesitate to fork and send
+pull requests!
+
+We also need people to test out pull-requests.  Take a look through [the open
+issues](https://github.com/ohmybash/oh-my-bash/issues) and help where you can.
 
 ## Contributors
 
@@ -292,5 +341,6 @@ Thank you so much!
 
 ## License
 
+See [`LICENSE.md`](License.md).
 Oh My Bash is derived from [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh).
 Oh My Bash is released under the [MIT license](LICENSE.md).

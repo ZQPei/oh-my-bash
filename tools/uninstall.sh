@@ -3,6 +3,15 @@
 # Note: this file is intentionally written in POSIX sh so that oh-my-bash can
 # be uninstalled without bash.
 
+_omb_uninstall_confirmation() {
+  if [ "${BASH_VERSION-}" ]; then
+    read -r -p "$1 " _omb_uninstall_confirmation
+  else
+    printf '%s ' "$1"
+    read -r _omb_uninstall_confirmation
+  fi
+}
+
 _omb_uninstall_contains_omb() {
   command grep -qE '(source|\.)[[:space:]]+.*[/[:space:]]oh-my-bash\.sh' "$1" 2>/dev/null
 }
@@ -35,19 +44,26 @@ _omb_uninstall_find_bashrc_original() {
   fi
 }
 
-read -r ${BASH_VERSION:+-p} "Are you sure you want to remove Oh My Bash? [y/N] " _omb_uninstall_confirmation
-if [ "$_omb_uninstall_confirmation" != y ] && [ "$_omb_uninstall_confirmation" != Y ]; then
-  printf '%s\n' "Uninstall cancelled"
-  unset _omb_uninstall_confirmation
+_omb_uninstall_base_directory=${OSH:-$HOME/.oh-my-bash}
+if [ ! -d "$_omb_uninstall_base_directory" ]; then
+  printf '%s\n' "Uninstall target '$_omb_uninstall_base_directory' not found."
+  unset -v _omb_uninstall_base_directory
   # shellcheck disable=SC2317
   return 0 2>/dev/null || exit 0
 fi
-unset _omb_uninstall_confirmation
 
-if [ -d ~/.oh-my-bash ]; then
-  printf '%s\n' "Removing ~/.oh-my-bash"
-  command rm -rf ~/.oh-my-bash
+_omb_uninstall_confirmation "Are you sure you want to remove Oh My Bash ($_omb_uninstall_base_directory)? [y/N]"
+if [ "$_omb_uninstall_confirmation" != y ] && [ "$_omb_uninstall_confirmation" != Y ]; then
+  printf '%s\n' "Uninstall cancelled"
+  unset -v _omb_uninstall_confirmation
+  # shellcheck disable=SC2317
+  return 0 2>/dev/null || exit 0
 fi
+unset -v _omb_uninstall_confirmation
+
+printf 'Removing %s\n' "$_omb_uninstall_base_directory"
+command rm -rf "$_omb_uninstall_base_directory"
+unset -v _omb_uninstall_base_directory
 
 _omb_uninstall_bashrc_original=
 _omb_uninstall_find_bashrc_original
@@ -58,7 +74,7 @@ if ! _omb_uninstall_contains_omb ~/.bashrc; then
     printf '%s\n' "uninstall: The original config was found at '$_omb_uninstall_bashrc_original'." >&2
   fi
   printf '%s\n' "uninstall: Canceled." >&2
-  unset _omb_uninstall_bashrc_original
+  unset -v _omb_uninstall_bashrc_original
   # shellcheck disable=SC2317
   return 1 2>/dev/null || exit 1
 fi
@@ -79,8 +95,8 @@ else
     command mv ~/.bashrc.omb-temp ~/.bashrc
 fi
 
-unset _omb_uninstall_bashrc_original
-unset _omb_uninstall_bashrc_uninstalled
+unset -v _omb_uninstall_bashrc_original
+unset -v _omb_uninstall_bashrc_uninstalled
 
 echo "Thanks for trying out Oh My Bash. It has been uninstalled."
 case $- in

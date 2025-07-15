@@ -85,14 +85,14 @@ esac
 
 function is_vim_shell {
   if [[ ${VIMRUNTIME-} ]]; then
-    echo "${D_INTERMEDIATE_COLOR}on ${D_VIMSHELL_COLOR}vim shell${D_DEFAULT_COLOR} "
+    _omb_util_print "${D_INTERMEDIATE_COLOR}on ${D_VIMSHELL_COLOR}vim shell${D_DEFAULT_COLOR} "
   fi
 }
 
 function mitsuhikos_lastcommandfailed {
   local status=$?
   if ((status != 0)); then
-    echo "${D_INTERMEDIATE_COLOR}exited ${D_CMDFAIL_COLOR}$status ${D_DEFAULT_COLOR}"
+    _omb_util_print "${D_INTERMEDIATE_COLOR}exited ${D_CMDFAIL_COLOR}$status ${D_DEFAULT_COLOR}"
   fi
 }
 
@@ -116,31 +116,31 @@ function prompt_git {
   local branchName=''
 
   # Check if the current directory is in a Git repository.
-  if command git rev-parse --is-inside-work-tree &>/dev/null; then
+  if _omb_prompt_git rev-parse --is-inside-work-tree &>/dev/null; then
 
     # check if the current directory is in .git before running git checks
-    if [[ $(command git rev-parse --is-inside-git-dir 2> /dev/null) == false ]]; then
+    if [[ $(_omb_prompt_git rev-parse --is-inside-git-dir 2> /dev/null) == false ]]; then
 
       # Ensure the index is up to date.
-      command git update-index --really-refresh -q &>/dev/null
+      _omb_prompt_git update-index --really-refresh -q &>/dev/null
 
       # Check for uncommitted changes in the index.
-      if ! command git diff --quiet --ignore-submodules --cached; then
+      if ! _omb_prompt_git diff --quiet --ignore-submodules --cached; then
         s+='+'
       fi
 
       # Check for unstaged changes.
-      if ! command git diff-files --quiet --ignore-submodules --; then
+      if ! _omb_prompt_git diff-files --quiet --ignore-submodules --; then
         s+='!'
       fi
 
       # Check for untracked files.
-      if [[ $(command git ls-files --others --exclude-standard) ]]; then
+      if [[ $(_omb_prompt_git ls-files --others --exclude-standard) ]]; then
         s+='?'
       fi
 
       # Check for stashed files.
-      if command git rev-parse --verify refs/stash &>/dev/null; then
+      if _omb_prompt_git rev-parse --verify refs/stash &>/dev/null; then
         s+='$'
       fi
 
@@ -150,9 +150,9 @@ function prompt_git {
     # If HEAD isn’t a symbolic ref, get the short SHA for the latest commit
     # Otherwise, just give up.
     branchName=$(
-      command git symbolic-ref --quiet --short HEAD 2> /dev/null ||
-        command git rev-parse --short HEAD 2> /dev/null ||
-        echo '(unknown)')
+      _omb_prompt_git symbolic-ref --quiet --short HEAD 2> /dev/null ||
+        _omb_prompt_git rev-parse --short HEAD 2> /dev/null ||
+        _omb_util_print '(unknown)')
 
     [[ $s ]] && s=" [$s]"
 
